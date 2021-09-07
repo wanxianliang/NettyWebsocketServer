@@ -13,7 +13,9 @@ public class ConnectManagerTest {
 
     @Test
     public void sendMsg() throws ExecutionException, InterruptedException {
-        ConnectManager connectManager = ConnectManager.newConnectInstance("127.0.0.1", 8080);
+        String remoteAddress = "127.0.0.1";
+        int port = 8080;
+        ConnectManager connectManager = ConnectManager.newConnectInstance(remoteAddress, port);
         RequestPlus requestPlus = new RequestPlus();
         String requestId = connectManager.sendMsg(requestPlus);
         connectManager.handleResult(requestId, responsePlus -> {
