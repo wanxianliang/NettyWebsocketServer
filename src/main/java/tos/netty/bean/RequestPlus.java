@@ -6,6 +6,7 @@ import java.io.Serializable;
 
 @Data
 public class RequestPlus implements Serializable {
+    private String requestType = "java-jdk-business-request";
     /**
      * request uuid
      */
@@ -18,6 +19,9 @@ public class RequestPlus implements Serializable {
      * request path
      */
     private String path;
+
+    private String userId;
+    private String deviceId;
 
     private Object body;
 

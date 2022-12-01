@@ -1,5 +1,9 @@
 package tos.netty.server;
 
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import tos.netty.bean.RequestPlus;
 import tos.netty.bean.ResponsePlus;
 import tos.netty.decoder.RequestDecoder;
@@ -44,11 +48,11 @@ public class ServerRemote {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
                             ch.pipeline()
-                                    .addLast(new StringDecoder())
-                                    .addLast(new RequestDecoder())
-                                    .addLast(new StringEncoder())
-                                    .addLast(new ResponseEncoder())
-                                    .addLast(new RemoteServerHandler(readHandle));
+                                    .addLast("business-request-decoder", new RequestDecoder())
+                                    .addLast("http-codec", new HttpServerCodec())
+                                    .addLast("aggregator", new HttpObjectAggregator(65536))
+                                    .addLast("response-encoder", new ResponseEncoder())
+                                    .addLast("server-handler", new RemoteServerHandler(readHandle));
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)

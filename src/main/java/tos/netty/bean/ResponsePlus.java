@@ -7,6 +7,8 @@ import java.io.Serializable;
 @Data
 public class ResponsePlus implements Serializable {
     private String requestId;
+    // 1:websocket 2:java-sdk
+    private Integer messageType;
     private int code;
     private String message;
     private Object result;

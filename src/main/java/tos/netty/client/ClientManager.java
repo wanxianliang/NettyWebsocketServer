@@ -1,5 +1,7 @@
 package tos.netty.client;
 
+import com.alibaba.fastjson.JSONObject;
+import io.netty.channel.ChannelFuture;
 import tos.netty.bean.RequestPlus;
 import tos.netty.bean.ResponsePlus;
 import tos.netty.decoder.ResponseDecoder;
@@ -15,18 +17,21 @@ import tos.netty.interfaceForHelp.CallbackFunction;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 
 /**
  * @author sean
  */
-public class ConnectManager {
+public class ClientManager {
+
+    public static boolean isActive = false;
 
     Bootstrap bootstrap;
 
     EventLoopGroup workerGroup;
 
     String host;
+
+    private ChannelFuture channelFuture;
 
     int port;
 
@@ -47,11 +52,11 @@ public class ConnectManager {
 
     Thread tickThread;
 
-    public static ConnectManager newConnectInstance(String host, int port) {
-        ConnectManager connectManager = new ConnectManager();
-        connectManager.initManage();
+    public static ClientManager newConnectInstance(String host, int port) {
+        ClientManager connectManager = new ClientManager();
         connectManager.host = host;
         connectManager.port = port;
+        connectManager.initManage();
         return connectManager;
     }
 
@@ -61,6 +66,7 @@ public class ConnectManager {
         bootstrap.group(workerGroup);
         bootstrap.channel(NioSocketChannel.class);
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+        bootstrap.option(ChannelOption.AUTO_CLOSE, false);
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
@@ -74,16 +80,29 @@ public class ConnectManager {
             }
         });
         try {
-            this.timeOutTicket();
+            channelFuture = bootstrap.connect(host, port).sync();
         } catch (Exception e) {
+            return;
         }
+        if (channelFuture.isSuccess()) {
+            ClientManager.isActive = true;
+        }
+        //todo 临时重连解决方案
+        channelFuture.channel().eventLoop().schedule(() -> {
+            if (!ClientManager.isActive) {
+                try {
+                    channelFuture = bootstrap.connect(host, port).sync();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 30, TimeUnit.SECONDS);
     }
-
 
     public String sendMsg(RequestPlus requestPlus) {
         String requestId = String.valueOf(requestIdGenerator.getAndIncrement());
         requestPlus.setRequestId(requestId);
-        RequestThread requestThread = RequestThread.newRequestThread(bootstrap, host, port, requestPlus);
+        RequestThread requestThread = RequestThread.newRequestThread(channelFuture, requestPlus);
         requestThreadPool.submit(requestThread);
         return requestId;
     }
@@ -110,6 +129,8 @@ public class ConnectManager {
     public void onRead(ResponsePlus responsePlus) {
         String requestId = responsePlus.getRequestId();
         if (requestId == null) {
+            //及时消息
+            System.out.println(JSONObject.toJSONString(responsePlus));
             return;
         }
         CallbackFunction<ResponsePlus> handle = handleResultList.get(requestId);
@@ -129,10 +150,4 @@ public class ConnectManager {
         handleResultList.put(requestId, cb);
     }
 
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
-        ConnectManager connectManager = ConnectManager.newConnectInstance("127.0.0.1", 2222);
-        String re = connectManager.sendMsg(new RequestPlus());
-        connectManager.handleResult(re, responsePlus -> {
-        });
-    }
 }
