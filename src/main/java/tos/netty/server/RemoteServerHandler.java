@@ -1,30 +1,24 @@
 package tos.netty.server;
 
 
-import com.alibaba.fastjson.JSONObject;
-import io.netty.channel.Channel;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
-import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
-import io.netty.util.internal.StringUtil;
-import lombok.extern.slf4j.Slf4j;
-import tos.netty.bean.RequestPlus;
-import tos.netty.bean.ResponsePlus;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.websocketx.*;
+import lombok.extern.slf4j.Slf4j;
+import tos.netty.bean.RequestData;
+import tos.netty.bean.RequestWithFileData;
+import tos.netty.bean.RequestWithTextData;
 
-import java.util.Collection;
-import java.util.Objects;
 import java.util.function.Function;
 
 @Slf4j
 public class RemoteServerHandler extends SimpleChannelInboundHandler<Object> {
 
-    private Function<RequestPlus, ResponsePlus> handleRead;
+    private Function<RequestData, Void> handleRead;
 
-    public RemoteServerHandler(Function<RequestPlus, ResponsePlus> handleRead) {
+    public RemoteServerHandler(Function<RequestData, Void> handleRead) {
         this.handleRead = handleRead;
     }
 
@@ -35,33 +29,25 @@ public class RemoteServerHandler extends SimpleChannelInboundHandler<Object> {
             handleHttpRequest(ctx, (FullHttpRequest) request);
             return;
         }
-        Integer messageType = 2;
-        //业务请求处理
-        RequestPlus requestPlus = null;
-        if (request instanceof RequestPlus) {
-            requestPlus = (RequestPlus) request;
-        }
-        if (request instanceof WebSocketFrame) {
-            messageType = 2;
+        if (request instanceof TextWebSocketFrame) {
             //处理websocket客户端的消息
             String message = ((TextWebSocketFrame) request).text();
             System.out.println("收到消息:" + message);
-            requestPlus = JSONObject.parseObject(message, RequestPlus.class);
+            RequestWithTextData requestData = new RequestWithTextData();
+            requestData.setCtx(ctx);
+            requestData.setType(1);
+            requestData.setText(message);
+            this.handleRead.apply(requestData);
+        } else if (request instanceof BinaryWebSocketFrame) {
+            BinaryWebSocketFrame binaryWebSocketFrame = (BinaryWebSocketFrame) request;
+            ByteBuf byteBuf = binaryWebSocketFrame.content();
+            RequestWithFileData requestData = new RequestWithFileData();
+            requestData.setCtx(ctx);
+            requestData.setType(2);
+            requestData.setByteBuf(byteBuf);
+            this.handleRead.apply(requestData);
         }
-        String userId = requestPlus.getUserId();
-        String deviceId = requestPlus.getDeviceId();
-        if (StringUtil.isNullOrEmpty(userId) || StringUtil.isNullOrEmpty(deviceId)) {
-            log.info("参数异常");
-            ctx.close();
-        }
-        ResponsePlus responsePlus = this.handleRead.apply(requestPlus);
-        if (responsePlus == null) {
-            responsePlus = ResponsePlus.build(500, null);
-        }
-        responsePlus.setRequestId(requestPlus.getRequestId());
-        responsePlus.setMessageType(messageType);
-        ConnectManager.storeConnect(userId + deviceId, ctx);
-        RequestClient.writeMsg(ctx, responsePlus);
+
     }
 
     @Override
@@ -80,33 +66,18 @@ public class RemoteServerHandler extends SimpleChannelInboundHandler<Object> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
         ctx.close();
-        ConnectManager.removeConnect(ctx);
+//        ConnectManager.removeConnect(ctx);
     }
 
     private void handleHttpRequest(ChannelHandlerContext ctx,
                                    FullHttpRequest req) throws Exception {
         WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(
-                "", null, true, 5 * 1024 * 1024);
+                "", null, true, 10 * 1024 * 1024);
         WebSocketServerHandshaker handshaker = wsFactory.newHandshaker(req);
         if (handshaker == null) {
             WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
         } else {
             handshaker.handshake(ctx.channel(), req);
-        }
-    }
-
-    private void dealAuth(String authKey, JSONObject jsonObject, ChannelHandlerContext ctx) {
-        if (StringUtil.isNullOrEmpty(authKey)) {
-            return;
-        }
-        //建立连接标识
-        if (Objects.equals(authKey, "wxllovexin")) {
-            String userId = jsonObject.getString("userId");
-            String deviceId = jsonObject.getString("deviceId");
-            ConnectManager.storeConnect(userId + deviceId, ctx);
-        } else {
-            //断开链接
-            ctx.close();
         }
     }
 

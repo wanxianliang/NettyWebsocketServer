@@ -1,13 +1,5 @@
 package tos.netty.server;
 
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
-import io.netty.handler.stream.ChunkedWriteHandler;
-import tos.netty.bean.RequestPlus;
-import tos.netty.bean.ResponsePlus;
-import tos.netty.decoder.RequestDecoder;
-import tos.netty.encorder.ResponseEncoder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -16,19 +8,21 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
+import tos.netty.bean.RequestData;
 
-import javax.annotation.Resource;
 import java.util.function.Function;
 
 public class ServerRemote {
 
     private int port;
 
-    private Function<RequestPlus, ResponsePlus> handleRead;
+    private Function<RequestData, Void> handleRead;
 
-    public static ServerRemote newServerInstance(int port, Function<RequestPlus, ResponsePlus> handleRead) {
+    public static ServerRemote newServerInstance(int port, Function<RequestData, Void> handleRead) {
         ServerRemote serverRemote = new ServerRemote();
         serverRemote.port = port;
         serverRemote.handleRead = handleRead;
@@ -38,7 +32,7 @@ public class ServerRemote {
     public void run() throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        final Function<RequestPlus, ResponsePlus> readHandle = this.handleRead;
+        final Function<RequestData, Void> readHandle = this.handleRead;
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -48,10 +42,12 @@ public class ServerRemote {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
                             ch.pipeline()
-                                    .addLast("business-request-decoder", new RequestDecoder())
-                                    .addLast("http-codec", new HttpServerCodec())
-                                    .addLast("aggregator", new HttpObjectAggregator(65536))
-                                    .addLast("response-encoder", new ResponseEncoder())
+                                    // 解码成HttpRequest
+                                    .addLast("http-codec", new HttpServerCodec(4096, 8192, 1073741824))
+                                    // 解码成FullHttpRequest
+                                    .addLast("aggregator", new HttpObjectAggregator(30 * 1024 * 1024))
+                                    // 添加WebSocket解编码
+                                    .addLast( new WebSocketServerProtocolHandler("/", null, false, 1024 * 1024 * 40))
                                     .addLast("server-handler", new RemoteServerHandler(readHandle));
                         }
                     })

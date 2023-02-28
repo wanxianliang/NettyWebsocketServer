@@ -1,22 +1,19 @@
 package tos.netty.client;
 
-import tos.netty.bean.RequestPlus;
+import tos.netty.bean.RequestData;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 public class RequestThread implements Runnable {
 
     private Bootstrap bootstrap;
 
-    private RequestPlus requestPlus;
+    private RequestData requestPlus;
     private ChannelFuture channelFuture;
     private String host;
     private int port;
 
-    public static RequestThread newRequestThread(ChannelFuture channelFuture, RequestPlus requestPlus) {
+    public static RequestThread newRequestThread(ChannelFuture channelFuture, RequestData requestPlus) {
         RequestThread requestThread = new RequestThread();
         requestThread.requestPlus = requestPlus;
         requestThread.channelFuture = channelFuture;

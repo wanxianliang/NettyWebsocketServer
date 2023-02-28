@@ -2,7 +2,7 @@ package tos.netty.client;
 
 import com.alibaba.fastjson.JSONObject;
 import io.netty.channel.ChannelFuture;
-import tos.netty.bean.RequestPlus;
+import tos.netty.bean.RequestData;
 import tos.netty.bean.ResponsePlus;
 import tos.netty.decoder.ResponseDecoder;
 import tos.netty.encorder.RequestEncoder;
@@ -99,13 +99,13 @@ public class ClientManager {
         }, 30, TimeUnit.SECONDS);
     }
 
-    public String sendMsg(RequestPlus requestPlus) {
-        String requestId = String.valueOf(requestIdGenerator.getAndIncrement());
-        requestPlus.setRequestId(requestId);
-        RequestThread requestThread = RequestThread.newRequestThread(channelFuture, requestPlus);
-        requestThreadPool.submit(requestThread);
-        return requestId;
-    }
+//    public String sendMsg(RequestData requestPlus) {
+//        String requestId = String.valueOf(requestIdGenerator.getAndIncrement());
+//        requestPlus.setRequestId(requestId);
+//        RequestThread requestThread = RequestThread.newRequestThread(channelFuture, requestPlus);
+//        requestThreadPool.submit(requestThread);
+//        return requestId;
+//    }
 
     public void timeOutTicket() throws InterruptedException {
         new Thread() {
