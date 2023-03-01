@@ -47,11 +47,13 @@ public class ServerRemote {
                                     // 解码成FullHttpRequest
                                     .addLast("aggregator", new HttpObjectAggregator(30 * 1024 * 1024))
                                     // 添加WebSocket解编码
-                                    .addLast( new WebSocketServerProtocolHandler("/", null, false, 1024 * 1024 * 40))
+                                    .addLast(new WebSocketServerProtocolHandler("/wss", null, false, 1024 * 1024 * 40))
                                     .addLast("server-handler", new RemoteServerHandler(readHandle));
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)
+                    .option(ChannelOption.SO_RCVBUF, 30 * 1024 * 1024)
+                    .option(ChannelOption.SO_SNDBUF, 30 * 1024 * 1024)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             // Bind and start to accept incoming connections.
             ChannelFuture f = b.bind(port).sync();
