@@ -2,6 +2,9 @@ package tos.netty.server;
 
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -11,12 +14,19 @@ import tos.netty.bean.RequestData;
 import tos.netty.bean.RequestWithFileData;
 import tos.netty.bean.RequestWithTextData;
 
+import java.nio.Buffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Slf4j
 public class RemoteServerHandler extends SimpleChannelInboundHandler<Object> {
 
+    public static Map<ChannelHandlerContext, ByteBuf> continueData = new HashMap<>();
+
     private Function<RequestData, Void> handleRead;
+
+    private ByteBuf data = null;
 
     public RemoteServerHandler(Function<RequestData, Void> handleRead) {
         this.handleRead = handleRead;

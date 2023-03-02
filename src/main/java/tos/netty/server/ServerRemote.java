@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import tos.netty.bean.RequestData;
+import tos.netty.decoder.ContinuationWebSocketFrameHandler;
 
 import java.util.function.Function;
 
@@ -46,6 +47,7 @@ public class ServerRemote {
                                     .addLast("http-codec", new HttpServerCodec(4096, 8192, 1073741824))
                                     // 解码成FullHttpRequest
                                     .addLast("aggregator", new HttpObjectAggregator(30 * 1024 * 1024))
+                                    .addLast("file-trans", new ContinuationWebSocketFrameHandler())
                                     // 添加WebSocket解编码
                                     .addLast(new WebSocketServerProtocolHandler("/wss", null, false, 1024 * 1024 * 40))
                                     .addLast("server-handler", new RemoteServerHandler(readHandle));

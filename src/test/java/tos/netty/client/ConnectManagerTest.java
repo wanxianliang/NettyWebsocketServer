@@ -56,7 +56,6 @@ public class ConnectManagerTest {
                 ByteBuf buf = requestWithFileData.getByteBuf();
 
                 ByteBuf byteBuf = buf.copy(0, 6);
-
                 Integer size = Integer.parseInt(byteBuf.toString(Charset.defaultCharset()));
                 JSONObject headerInfo = JSONObject.parseObject(buf.copy(6, size).toString(Charset.defaultCharset()));
                 String toDeviceId = headerInfo.getString("toDeviceId");
@@ -67,6 +66,7 @@ public class ConnectManagerTest {
                     log.info("没有找到客户端");
                     return null;
                 }
+                System.out.println(buf.capacity());
                 RequestClient.writeByteBuf(connectClient.getCtx(), buf.copy());
 
             }
