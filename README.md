@@ -1,14 +1,22 @@
-This Repository is a Request Framwork base on Netty。you can use this to run a netty server Simply or build a netty client simply。
+This Repository is a web socket server base on Netty 。
 
 
 
-Run a netty server with follow code
+Run a websocket server easily
 
 ```java
-ServerRemote serverRemote = ServerRemote.newServerInstance(8080, requestPlus -> {
-  //deal with request and then response
-            return ResponsePlus.build(0, "ok");
-});
+ ServerRemote serverRemote = ServerRemote.newServerInstance(2222, requestPlus -> {
+            if (RequestTypeEnum.TEXT.getType().equals(requestPlus.getType())) {
+                RequestWithTextData requestWithTextData = (RequestWithTextData) requestPlus;
+                String text = requestWithTextData.getText();
+                log.info("server receive text data {}", text);
+            } else if (RequestTypeEnum.Binary.getType().equals(requestPlus.getType())) {
+                RequestWithBinaryData requestWithFileData = (RequestWithBinaryData) requestPlus;
+                ByteBuf buf = requestWithFileData.getByteBuf();
+                log.info("server receive binary data,buf size {}", buf.capacity());
+            }
+            return null;
+        });
 serverRemote.run();
 ```
 
@@ -22,9 +30,8 @@ public class SpringBootStartEvent implements ApplicationListener<SpringApplicati
 
     @Bean(name = "serverRemote")
     ServerRemote createNettyRemote() {
-        return ServerRemote.newServerInstance(8080, requestPlus -> {
+        return ServerRemote.newServerInstance(2222, requestPlus -> {
             //deal with request and return response
-            return ResponsePlus.build(0, "ok");
         });
     }
 
@@ -47,27 +54,5 @@ public class SpringBootStartEvent implements ApplicationListener<SpringApplicati
     }
 }
 ```
-
-
-
-Run a client with follow code
-
-```java
-String remoteAddress = "127.0.0.1";
-int port = 8080;
-ConnectManager connectManager = ConnectManager.newConnectInstance(remoteAddress, port);
-RequestPlus requestPlus = new RequestPlus();
-String requestId = connectManager.sendMsg(requestPlus);
-connectManager.handleResult(requestId, responsePlus -> {
-//deal with response
-});
-});
-```
-
-
-
-Todos
-
-- [ ] Healthy check
 
 If you like this repo,please give me a start ❤️，thank you ❀

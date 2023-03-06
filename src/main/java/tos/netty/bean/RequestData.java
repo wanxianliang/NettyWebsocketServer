@@ -10,7 +10,7 @@ public abstract class RequestData implements Serializable {
 
     private ChannelHandlerContext ctx;
     /**
-     * 类型 1:普通文本 2:文件
+     * @see tos.netty.enums.RequestTypeEnum
      */
     private Integer type;
 

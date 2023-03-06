@@ -5,7 +5,7 @@ import lombok.Data;
 
 
 @Data
-public class RequestWithFileData extends RequestData {
+public class RequestWithBinaryData extends RequestData {
 
     private ByteBuf byteBuf;
 

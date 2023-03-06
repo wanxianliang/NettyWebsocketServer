@@ -2,19 +2,17 @@ package tos.netty.server;
 
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufUtil;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
 import tos.netty.bean.RequestData;
-import tos.netty.bean.RequestWithFileData;
+import tos.netty.bean.RequestWithBinaryData;
+import tos.netty.bean.RequestWithPong;
 import tos.netty.bean.RequestWithTextData;
+import tos.netty.enums.RequestTypeEnum;
 
-import java.nio.Buffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -45,16 +43,21 @@ public class RemoteServerHandler extends SimpleChannelInboundHandler<Object> {
             System.out.println("收到消息:" + message);
             RequestWithTextData requestData = new RequestWithTextData();
             requestData.setCtx(ctx);
-            requestData.setType(1);
+            requestData.setType(RequestTypeEnum.TEXT.getType());
             requestData.setText(message);
             this.handleRead.apply(requestData);
         } else if (request instanceof BinaryWebSocketFrame) {
             BinaryWebSocketFrame binaryWebSocketFrame = (BinaryWebSocketFrame) request;
             ByteBuf byteBuf = binaryWebSocketFrame.content();
-            RequestWithFileData requestData = new RequestWithFileData();
+            RequestWithBinaryData requestData = new RequestWithBinaryData();
             requestData.setCtx(ctx);
             requestData.setType(2);
             requestData.setByteBuf(byteBuf);
+            this.handleRead.apply(requestData);
+        } else if (request instanceof PongWebSocketFrame) {
+            RequestWithPong requestData = new RequestWithPong();
+            requestData.setCtx(ctx);
+            requestData.setType(RequestTypeEnum.PONG.getType());
             this.handleRead.apply(requestData);
         }
 
