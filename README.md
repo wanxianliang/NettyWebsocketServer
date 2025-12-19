@@ -55,4 +55,4 @@ public class SpringBootStartEvent implements ApplicationListener<SpringApplicati
 }
 ```
 
-If you like this repo,please give me a start ❤️，thank you ❀
+If you like this repo,please give me a star ❤️，thank you ❀
